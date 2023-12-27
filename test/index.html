@@ -1,0 +1,254 @@
+<!--<link rel="stylesheet" href="https://www.layuicdn.com/layui-v2.5.4/css/layui.css">-->
+<style>
+/*table thead{width: calc(100% + 8px);}*/
+/*table tbody{width: calc(100% + 8px); max-height:450px; display:block;overflow-y: auto;-webkit-overflow-scrolling: touch;}*/
+ /* 滚动条宽度 */
+/*::-webkit-scrollbar {width: 8px;background-color: transparent;}*/
+/* 滚动条颜色 */
+/*::-webkit-scrollbar-thumb {background-color: #27314d;}*/
+/*table thead tr, table tbody tr{box-sizing: border-box;table-layout: fixed;display: table;width: 100%;}*/
+</style> 
+<div class="bt-form">
+    <div class="bt-w-main">
+            <div class="plugin_body" id="page_index"  style="display: block">
+                
+								<div class="tootls_group tootls_top mtb20">
+								    <span class="col-sm-3">
+                                  	    <input class="btswitch btswitch-ios" id="packageswitch" type="checkbox"><label class="btswitch-btn sshswitch" for="packageswitch" onclick="set_open()" title="开启将会下载的删除源码，更节约磁盘空间，关闭的话相同安装就不用重新下载源码" style="float: left;width: 50px;"></label><c style="float: left;">源码删除开关</c>
+                              	    </span>
+                                  	
+    								<span class="col-sm-3">
+    								     <button type="button" title="修改拦截显示内容" onclick="bt.pub.on_edit_file(0,'/www/server/panel/plugin/cloudwebsite/cloudwebsite.html')" class="btn btn-success group_Ptnzw_0 btn-sm mr5"><span>拦截响应</span>
+								        </button>
+    								    <input class="btswitch btswitch-ios" id="lanjieswitch" type="checkbox"><label class="btswitch-btn sshswitch" for="lanjieswitch" onclick="set_lanjie()" title="开启将会拦指定域名（设置为平台默认解析到本服务器域名），关闭的话可能默认域名会被用户非法绑定" style="float: left;width: 50px;"></label><c style="float: left;">拦截开关</c>
+								    </span>
+								
+                                    <span class="col-sm-3 layui-layer-btn-c">
+    								     <button type="button" title="修改拦截域名" onclick="set_url()" id="lanjie_url" class="btn btn-success group_Ptnzw_0 btn-sm mr5"><span>拦截域名</span>
+								        </button>
+                                    </span>
+                                    
+                                  	<span class="col-sm-3 layui-layer-btn-c">
+    								    <button type="button" title="添加HOST" onclick="host_add()" class="btn btn-success group_Ptnzw_0 btn-sm mr5"><span>HOST添加</span>
+    								    </button>
+								    </span>
+								
+								</div>
+								<div class="divtable">
+									<table class="table table-hover" id="ServerListTable">
+									</table>
+								</div>
+
+
+
+            </div>
+
+    </div>
+</div>
+<!--JS脚本部分，不要将JS脚本写在其它地方-->
+
+
+<script type="text/javascript">
+//定义窗口尺寸
+$('.layui-layer-page').css({ 'width': '900px' });
+function get_config(){
+		$.get('/plugin?action=a&name=cloudwebsite&s=get_config',function(configdata){
+		   var config = JSON.parse(JSON.stringify(configdata));
+		   if(config.package){
+		        $("#packageswitch").attr('checked','true');
+		   }
+		   if(config.lanjie){
+		        $("#lanjieswitch").attr('checked','true');
+		   }
+		   if(config.url){
+		        $("#lanjie_url").attr('data_yum',config.url);
+		   }
+		   
+		});
+}
+get_config();
+function set_open(){
+		$.get('/plugin?action=a&name=cloudwebsite&s=set_open',function(data){
+		   var data = JSON.parse(JSON.stringify(data));
+		   layer.msg(data.msg, {
+                time: 3000
+              });
+		});
+}
+function set_lanjie(){
+		$.get('/plugin?action=a&name=cloudwebsite&s=set_lanjie',function(data){
+		   var data = JSON.parse(JSON.stringify(data));
+		   layer.msg(data.msg, {
+                time: 3000
+              });
+		});
+}
+
+function set_url(){
+    host =$("#lanjie_url").attr("data_yum");
+    layer.open({
+		type: 1,
+		title: "修改拦截域名",
+		area: ['450px', 'auto'],
+		btn: ['保存'],
+		closeBtn: 1,
+		shadeClose: false,
+		content: '<div id="hostsTemplate">\
+                    <div class="row" style="width: 420px; margin-left:7px; margin-top:10px;">\
+                        <div class="col-sm-12">\
+                            <div class="input-group">\
+                                <span class="input-group-addon">域名</span>\
+                                <input class="form-control" id="T_lanjieDomain" name="ehostDomain"  value="'+ host +'" >\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>\
+            <blockquote class="layui-elem-quote" style="margin-top: 30px;">\
+              请在这里填写您需要拦截的域名,可填写根域名或指定二级域名 拦截系统会拦截包含你设置的域名。\
+            </blockquote>',
+            yes: function(index, layero){
+				    var fdata="url="+$("#T_lanjieDomain").val();
+                	   $.ajax({
+                        	url:"/plugin?action=a&name=cloudwebsite&s=set_url",
+                            type:"get",
+                            dataType:"JSON",
+                            data:fdata,
+                            success:function(rdata)
+                            {
+                                
+                                get_config();
+                                layer.msg(rdata["msg"], {icon: 1});
+                                layer.close(index);
+                            }
+                        });
+                  },
+              
+        });
+        
+	
+	
+}
+// 获取Host的列表信息
+function GetHostList(){
+	$.get('/plugin?action=a&name=cloudwebsite&s=GetHostConfig',function(rdata){
+  		var tablehtml=' <thead><tr><th>ID</th><th>域名</th></th><th>IP</th> <th>操作</th></tr></thead><tbody>\n';
+  		for(var i=0;i<rdata["num"];i++)
+  		{
+  			ldata = rdata["domains"][i];
+  			tablehtml = tablehtml + "<tr><td>" + (i+1) +
+  			            "</td><td>" + ldata["host"] +
+  			            "</td><td>" + ldata["ip"] +
+  			             "</td><td>"+'<button class="btn btn-success btn-sm" onclick="host_edit(\''+ldata["ip"]+'\',\''+ldata["host"]+'\')">修改</button>'
+  			                        +'<button class="btn btn-danger btn-sm" onclick="host_del(\''+ldata["host"]+'\')">删除</button>'+
+  			            "</td></tr>\n";
+  		}
+  		$("#ServerListTable").html(tablehtml+"</tbody>");
+	});
+	
+}
+      
+function host_edit(ip,host){
+        layer.open({
+		type: 1,
+		title: "修改",
+		area: ['450px', 'auto'],
+		btn: ['保存'],
+		closeBtn: 1,
+		shadeClose: false,
+		content: '<div id="hostsTemplate">\
+                    <div class="row" style="width: 420px; margin-left:7px; margin-top:10px;">\
+                        <div class="col-sm-12">\
+                            <div class="input-group">\
+                                <span class="input-group-addon">IP</span>\
+                                <input id="T_ehostIp" name="ehostIp" value="'+ ip +'"  class="form-control" placeholder="127.0.0.1">\
+                            </div>\
+                        </div>\
+                        <div class="col-sm-12" style="margin-top: 10px">\
+                            <div class="input-group">\
+                                <span class="input-group-addon">域名</span>\
+                                <input id="T_ehostDomain" name="ehostDomain"  class="form-control" value="'+ host +'"  placeholder="www.baidu.com">\
+								<input type="hidden" id="domain" name="Domain"  value="'+ host +'" class="layui-input">\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>',
+            yes: function(index, layero){
+				    var fdata="newdomain="+$("#T_ehostDomain").val()+"&ip="+$("#T_ehostIp").val()+"&olddomain="+$("#domain").val();
+                	   $.ajax({
+                        	url:"/plugin?action=a&name=cloudwebsite&s=EditDomainConfig",
+                            type:"POST",
+                            dataType:"JSON",
+                            data:fdata,
+                            success:function(rdata)
+                            {
+                                parent.GetHostList();
+                                layer.msg(rdata["msg"], {icon: 1});
+                                layer.close(index);
+                            }
+                        });
+                  },
+              
+        });
+}
+        
+        
+function host_add(){
+        layer.open({
+		type: 1,
+		title: "添加HOST",
+		area: ['450px', 'auto'],
+		btn: ['保存'],
+		closeBtn: 1,
+		shadeClose: false,
+		content: '<div id="hostsTemplate">\
+                    <div class="row" style="width: 420px; margin-left:7px; margin-top:10px;">\
+                        <div class="col-sm-12">\
+                            <div class="input-group">\
+                                <span class="input-group-addon">IP</span>\
+                                <input id="T_ehostIp" name="ehostIp" value=""  class="form-control" placeholder="127.0.0.1">\
+                            </div>\
+                        </div>\
+                        <div class="col-sm-12" style="margin-top: 10px">\
+                            <div class="input-group">\
+                                <span class="input-group-addon">域名</span>\
+                                <input id="T_ehostDomain" name="ehostDomain"  class="form-control" placeholder="www.baidu.com">\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>',
+            yes: function(index, layero){
+	                var fdata="domain="+$("#T_ehostDomain").val()+"&ip="+$("#T_ehostIp").val();
+                	   $.ajax({
+                        	url:"/plugin?action=a&name=cloudwebsite&s=AddDomainConfig",
+                            type:"POST",
+                            dataType:"JSON",
+                            data:fdata,
+                            success:function(rdata)
+                            {
+                                parent.GetHostList();
+                                layer.msg(rdata["msg"], {icon: 1});
+                                layer.close(index);
+                            }
+                        });
+                  },
+        });
+}
+				    
+function host_del(host){
+	layer.confirm('确认要删除吗？',function(index){
+    $.ajax({
+  	url:"/plugin?action=a&name=cloudwebsite&s=DelDomainConfig",
+  	type:"POST",
+  	data:"domain="+host,
+  	dataType:"JSON",
+  	success:function(rdata){
+  		    layer.msg(rdata["msg"],{icon:1,time:3000});
+  		 	GetHostList();
+  		   }
+  	   })
+     });
+}
+$(document).ready(function(){ 
+    GetHostList();
+}); 
+</script>
